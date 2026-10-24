@@ -1,3 +1,6 @@
+version: "0.1.0"
+description: WiFi provisioning for the ESP32 using a SoftAP and captive portal
+url: https://github.com/eric-vickery/ESP32-SoftAP-Captive-Portal-WiFi-Provisioner
 dependencies:
   idf: ">=6.0"
   espressif/cjson: "^1.7.19"

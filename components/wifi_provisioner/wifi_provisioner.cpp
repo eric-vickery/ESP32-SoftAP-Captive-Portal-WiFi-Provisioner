@@ -142,11 +142,9 @@ esp_err_t WifiProvisioner::start_web_server_() {
     ESP_LOGI(TAG, "Starting web server...");
     httpd_config_t config = HTTPD_DEFAULT_CONFIG();
 
-    config.max_uri_handlers = 10;    // Erlaube mehr URI-Handler (gute Praxis)
-    #if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 5, 0)
-    config.max_req_hdr_len  = 1024;  // The default is often 512 bytes. We double it. Available from IDF 5.5:
-    #endif
-    config.max_resp_headers = 10;    // Erlaube mehr Response-Header (gute Praxis)
+    config.max_uri_handlers = 10;    // Allow more URI handlers (good practice)
+    config.max_req_hdr_len  = 1024;  // The default is often 512 bytes. We double it. Set here so no sdkconfig entry is needed.
+    config.max_resp_headers = 10;    // Allow more response headers (good practice)
     config.uri_match_fn = httpd_uri_match_wildcard;
 
     if (httpd_start(&server_, &config) != ESP_OK) return ESP_FAIL;
@@ -509,7 +507,16 @@ esp_err_t WifiProvisioner::save_post_handler_(httpd_req_t *req) {
 void WifiProvisioner::wifi_event_handler(void* arg, esp_event_base_t event_base, int32_t event_id, void* event_data) {
     // Get the class instance from the argument pointer
     WifiProvisioner* provisioner = static_cast<WifiProvisioner*>(arg);
-    
+
+    // While the captive portal is running (AP+STA mode) no credentials exist yet.
+    // Don't try to connect or count retries, or the retry limit would erase NVS
+    // and reboot before the user can provision.
+    if (event_base == WIFI_EVENT &&
+        (event_id == WIFI_EVENT_STA_START || event_id == WIFI_EVENT_STA_DISCONNECTED) &&
+        provisioner->_ssid.empty()) {
+        return;
+    }
+
     if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_START) {
         ESP_LOGI(TAG, "EVENT: STA_START received. Initiating connection...");
         esp_wifi_connect();
