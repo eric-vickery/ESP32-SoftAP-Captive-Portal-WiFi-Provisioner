@@ -15,7 +15,7 @@
 static const char *TAG = "WIFI_PROV";
 #define PROV_NVS_NAMESPACE "wifi_prov"
 
-// Bit für Event Group
+// Bit for the event group
 #define PROV_SUCCESS_BIT BIT0
 
 // Prototypen
@@ -28,22 +28,22 @@ extern const char root_html_end[]   asm("_binary_index_en_html_end");
 extern const char style_css_start[] asm("_binary_style_css_start");
 extern const char style_css_end[]   asm("_binary_style_css_end");
 
-#define WIFI_MAX_RETRIES_INITIAL 5       // Kurze Wartezeit für die erste Verbindung
-#define WIFI_MAX_RETRIES_RECONNECT 3600  // Lange Wartezeit für Wiederverbindung (3600 Versuche * 1s = 1 Stunde)
+#define WIFI_MAX_RETRIES_INITIAL 5       // Short wait for the first connection
+#define WIFI_MAX_RETRIES_RECONNECT 3600  // Long wait for reconnection (3600 attempts * 1s = 1 hour)
 
 static int s_retry_num = 0;
-static int s_max_retries = WIFI_MAX_RETRIES_INITIAL; // Startet immer mit dem kurzen Limit
+static int s_max_retries = WIFI_MAX_RETRIES_INITIAL; // Always starts with the short limit
 
 WifiProvisioner* WifiProvisioner::s_instance = nullptr;
 
 /**
  * @brief Hilfsfunktion zum Dekodieren eines URL-kodierten Strings.
- * @param out Puffer für den dekodierten String.
- * @param in  Der URL-kodierte Eingabe-String.
+ * @param out Buffer for the decoded string.
+ * @param in  The URL-encoded input string.
  */
 static void url_decode(char *out, const char *in, size_t out_len) {
     char *end = out + out_len - 1; // Ende des Puffers
-    while (*in && out < end) { // Prüfe Puffergrenze
+    while (*in && out < end) { // Check buffer limit
         if (*in == '%') {
             if (in[1] && in[2]) {
                 char hex[3] = { in[1], in[2], '\0' };
@@ -60,9 +60,9 @@ static void url_decode(char *out, const char *in, size_t out_len) {
     *out = '\0'; // Nullterminierung sicherstellen
 }
 
-// Konstruktor: Erstellt die Event Group
+// Constructor: Creates the event group
 WifiProvisioner::WifiProvisioner() {
-    s_instance = this; // Speichere die Adresse dieser Instanz
+    s_instance = this; // Store the address of this instance
 
     esp_err_t ret = nvs_flash_init();
     if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {
@@ -75,7 +75,7 @@ WifiProvisioner::WifiProvisioner() {
     init_wifi_();
 }
 
-// Destruktor: Gibt die Event Group frei
+// Destructor: Frees the event group
 WifiProvisioner::~WifiProvisioner() {
     stop_web_server_();
     stop_dns_server();
@@ -107,7 +107,7 @@ esp_err_t WifiProvisioner::start_ap_(const std::string& ssid, const std::string&
     wifi_config_t wifi_config = {};
     strncpy((char*)wifi_config.ap.ssid, ssid.c_str(), sizeof(wifi_config.ap.ssid) -1);
 
-    // Konfiguration für den Access Point Teil
+    // Configuration for the access point part
     if (password.length() >= 8) {
         wifi_config.ap.authmode = WIFI_AUTH_WPA_WPA2_PSK;
         strncpy((char*)wifi_config.ap.password, password.c_str(), sizeof(wifi_config.ap.password) - 1);
@@ -124,10 +124,10 @@ esp_err_t WifiProvisioner::start_ap_(const std::string& ssid, const std::string&
 }
 
 void WifiProvisioner::stop_ap_() {
-    // Stoppt das Senden von Beacon-Frames und trennt alle Clients
+    // Stops sending beacon frames and disconnects all clients
     ESP_ERROR_CHECK(esp_wifi_stop());
     
-    // Setzt den Modus auf NULL, um den WiFi-Teil in einen Low-Power-Zustand zu versetzen
+    // Sets the mode to NULL to put the WiFi part into a low-power state
     ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_NULL)); 
     ESP_LOGI(TAG, "SoftAP stopped.");
 }
@@ -144,7 +144,7 @@ esp_err_t WifiProvisioner::start_web_server_() {
 
     config.max_uri_handlers = 10;    // Erlaube mehr URI-Handler (gute Praxis)
     #if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 5, 0)
-    config.max_req_hdr_len  = 1024;  // Der Standardwert ist oft 512 Bytes. Wir verdoppeln ihn. Ab IDF 5.5 verfügbar:
+    config.max_req_hdr_len  = 1024;  // The default is often 512 bytes. We double it. Available from IDF 5.5:
     #endif
     config.max_resp_headers = 10;    // Erlaube mehr Response-Header (gute Praxis)
     config.uri_match_fn = httpd_uri_match_wildcard;
@@ -168,7 +168,7 @@ esp_err_t WifiProvisioner::start_web_server_() {
     return ESP_OK;
 }
 
-// Öffentliche Methoden
+// Public methods
 esp_err_t WifiProvisioner::start_provisioning(const std::string& ap_ssid, bool persistent_storage, const std::string& ap_password) {
     _persistent_storage = persistent_storage;
 
@@ -179,15 +179,15 @@ esp_err_t WifiProvisioner::start_provisioning(const std::string& ap_ssid, bool p
 
     ESP_LOGI(TAG, "Provisioning running. Waiting for user to submit credentials...");
     
-    // Warte hier, bis der save_post_handler das PROV_SUCCESS_BIT setzt
+    // Wait here until the save_post_handler sets the PROV_SUCCESS_BIT
     xEventGroupWaitBits(_provisioning_event_group, PROV_SUCCESS_BIT,
-                        pdTRUE, // Bit nach dem Warten löschen
+                        pdTRUE, // Clear the bit after waiting
                         pdFALSE,
                         portMAX_DELAY);
 
     ESP_LOGI(TAG, "Credentials received. Shutting down provisioning services.");
     
-    // Aufräumen: Server und AP stoppen
+    // Clean up: stop server and AP
     stop_dns_server();
     stop_web_server_();
     stop_ap_();
@@ -210,7 +210,7 @@ esp_err_t WifiProvisioner::get_credentials() {
 }
 
 esp_err_t WifiProvisioner::connect_sta() {
-    // 1. Sicherheitsprüfung: Sind überhaupt Zugangsdaten in der Klasse vorhanden?
+    // 1. Safety check: Are there any credentials in the class at all?
     if (_ssid.empty()) {
         ESP_LOGE(TAG, "Cannot connect: No credentials loaded. Call 'get_credentials()' or 'start_provisioning()' first.");
         return ESP_FAIL;
@@ -221,7 +221,7 @@ esp_err_t WifiProvisioner::connect_sta() {
         _hostname = "ESP32";
     }
 
-    // Hostname bereinigen: Nur Buchstaben, Ziffern und Bindestriche erlaubt
+    // Sanitize hostname: only letters, digits and hyphens allowed
     std::string sanitized;
     sanitized.reserve(_hostname.size());
     for (char c : _hostname) {
@@ -231,7 +231,7 @@ esp_err_t WifiProvisioner::connect_sta() {
             sanitized += c;
         }
     }
-    // Führende/abschließende Bindestriche entfernen
+    // Remove leading/trailing hyphens
     while (!sanitized.empty() && sanitized.front() == '-') sanitized.erase(sanitized.begin());
     while (!sanitized.empty() && sanitized.back() == '-') sanitized.pop_back();
     // Auf 63 Zeichen begrenzen
@@ -239,20 +239,20 @@ esp_err_t WifiProvisioner::connect_sta() {
     // Fallback falls nach Bereinigung leer
     _hostname = sanitized.empty() ? "ESP32" : sanitized;
 
-    // 3. Logging der in der Klasse gespeicherten Daten
+    // 3. Log the data stored in the class
     ESP_LOGI(TAG, "Attempting to connect with credentials stored in the class instance:");
     ESP_LOGI(TAG, "  -> SSID:     '%s'", _ssid.c_str());
     ESP_LOGI(TAG, "  -> Password: %s", _password.length() > 0 ? "YES (hidden for security)" : "NO (open network)");
     ESP_LOGI(TAG, "  -> Timezone: '%s'", _timezone.c_str());
 
-    // 4. Hostname für das STA-Interface setzen
+    // 4. Set the hostname for the STA interface
     esp_netif_t *sta_netif = esp_netif_get_handle_from_ifkey("WIFI_STA_DEF");
     if (sta_netif) {
         ESP_ERROR_CHECK(esp_netif_set_hostname(sta_netif, _hostname.c_str()));
         ESP_LOGI(TAG, "  -> Hostname set to: '%s'", _hostname.c_str());
     }
 
-    // 5. WiFi-Konfiguration mit den Member-Variablen erstellen
+    // 5. Create the WiFi configuration from the member variables
     wifi_config_t wifi_config = {};
     strncpy((char*)wifi_config.sta.ssid, _ssid.c_str(), sizeof(wifi_config.sta.ssid) - 1);
     strncpy((char*)wifi_config.sta.password, _password.c_str(), sizeof(wifi_config.sta.password) - 1);
@@ -263,13 +263,13 @@ esp_err_t WifiProvisioner::connect_sta() {
         wifi_config.sta.threshold.authmode = WIFI_AUTH_OPEN;
     }
     
-    // 6. WiFi-System starten (der eigentliche Verbindungsaufbau geschieht im Event-Handler)
+    // 6. Start the WiFi system (the actual connection setup happens in the event handler)
     ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
     ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &wifi_config));
     ESP_ERROR_CHECK(esp_wifi_start());
     ESP_LOGI(TAG, "WiFi system started. Waiting for connection events...");
 
-    // 7. Zeitzone aus der Member-Variable anwenden
+    // 7. Apply the time zone from the member variable
     setenv("TZ", _timezone.c_str(), 1);
     tzset();
     ESP_LOGI(TAG, "System timezone set to: '%s'", _timezone.c_str());
@@ -287,8 +287,8 @@ esp_err_t WifiProvisioner::load_credentials_from_nvs_(std::string& ssid, std::st
     // SSID
     if (nvs_get_str(h, "ssid", NULL, &required_size) == ESP_OK) {
         ssid.resize(required_size);
-        nvs_get_str(h, "ssid", &ssid[0], &required_size); // &ssid[0] gibt ab C++11 einen schreibbaren Pointer auf den internen Puffer des Strings zurück
-        ssid.pop_back(); // NVS speichert mit \0, das entfernen wir aus dem std::string
+        nvs_get_str(h, "ssid", &ssid[0], &required_size); // &ssid[0] returns a writable pointer to the string's internal buffer since C++11
+        ssid.pop_back(); // NVS stores with \0, which we remove from the std::string
     }
     // Password
     if (nvs_get_str(h, "password", NULL, &required_size) == ESP_OK) {
@@ -322,7 +322,7 @@ esp_err_t WifiProvisioner::save_credentials_to_nvs_() {
         return err;
     }
 
-    // Schreibe die Werte aus den Member-Variablen in den NVS
+    // Write the values from the member variables to NVS
     err = nvs_set_str(nvs_handle, "ssid", _ssid.c_str());
     if (err != ESP_OK) ESP_LOGE(TAG, "Failed to save ssid to NVS");
 
@@ -335,7 +335,7 @@ esp_err_t WifiProvisioner::save_credentials_to_nvs_() {
     err = nvs_set_str(nvs_handle, "timezone", _timezone.c_str());
     if (err != ESP_OK) ESP_LOGE(TAG, "Failed to save timezone to NVS");
 
-    // Bestätige die Schreibvorgänge
+    // Commit the writes
     err = nvs_commit(nvs_handle);
     if (err != ESP_OK) {
         ESP_LOGE(TAG, "Failed to commit credentials to NVS");
@@ -343,7 +343,7 @@ esp_err_t WifiProvisioner::save_credentials_to_nvs_() {
         ESP_LOGI(TAG, "Credentials successfully committed to NVS.");
     }
     
-    // Schließe den NVS-Handle
+    // Close the NVS handle
     nvs_close(nvs_handle);
     return err;
 }
@@ -365,16 +365,16 @@ esp_err_t WifiProvisioner::captive_portal_handler_(httpd_req_t *r) {
 
 esp_err_t WifiProvisioner::scan_get_handler_(httpd_req_t *req) {
 
-    // 1. WLAN-Scan durchführen
+    // 1. Perform WiFi scan
     uint16_t num_aps = 0;
     // esp_wifi_scan_stop(); // Stoppt einen evtl. laufenden Scan
-    esp_wifi_scan_start(NULL, true); // true = blockierend, wartet auf das Ergebnis
+    esp_wifi_scan_start(NULL, true); // true = blocking, waits for the result
     esp_wifi_scan_get_ap_num(&num_aps);
     
-    ESP_LOGI(TAG, "==> Scan beendet. Gefundene Netzwerke: %u", num_aps);
+    ESP_LOGI(TAG, "==> Scan finished. Networks found: %u", num_aps);
 
     if (num_aps == 0) {
-        ESP_LOGW(TAG, "Keine Netzwerke gefunden. Sende leere JSON-Liste.");
+        ESP_LOGW(TAG, "No networks found. Sending empty JSON list.");
         httpd_resp_set_type(req, "application/json");
         return httpd_resp_send(req, "{\"aps\":[]}", HTTPD_RESP_USE_STRLEN);
     }
@@ -387,14 +387,14 @@ esp_err_t WifiProvisioner::scan_get_handler_(httpd_req_t *req) {
         // alphabetische Sortierung:
         // return strcmp((const char*)a.ssid, (const char*)b.ssid) < 0;
 
-        // Sortierung nach RSSI (absteigend, da höhere Werte besser sind):
+        // Sort by RSSI (descending, since higher values are better):
         return a.rssi > b.rssi;
     });
 
-    // Set zum Speichern bereits hinzugefügter SSIDs
+    // Set for storing already added SSIDs
     std::set<std::string> added_ssids;
 
-    // 3. JSON aus der sortierten Liste erstellen
+    // 3. Build JSON from the sorted list
     cJSON *root = cJSON_CreateObject();
     cJSON *aps = cJSON_CreateArray();
     cJSON_AddItemToObject(root, "aps", aps);
@@ -404,10 +404,10 @@ esp_err_t WifiProvisioner::scan_get_handler_(httpd_req_t *req) {
     for (const auto& record : ap_records) {
         std::string ssid((const char*)record.ssid);
 
-        // Leere SSIDs überspringen
+        // Skip empty SSIDs
         if (ssid.empty()) continue;
 
-        // Doppelte SSIDs überspringen (erste = stärkste bleibt)
+        // Skip duplicate SSIDs (the first = strongest is kept)
         if (seen_ssids.count(ssid) > 0) continue;
         seen_ssids.insert(ssid);
 
@@ -418,7 +418,7 @@ esp_err_t WifiProvisioner::scan_get_handler_(httpd_req_t *req) {
     }
     
     char* json_str = cJSON_PrintUnformatted(root);
-    ESP_LOGI(TAG, "==> Sende JSON-Antwort an den Browser: %s", json_str);
+    ESP_LOGI(TAG, "==> Sending JSON response to the browser: %s", json_str);
 
     httpd_resp_set_type(req, "application/json");
     httpd_resp_send(req, json_str, strlen(json_str));
@@ -432,12 +432,12 @@ esp_err_t WifiProvisioner::scan_get_handler_(httpd_req_t *req) {
 
 
 esp_err_t WifiProvisioner::save_post_handler_(httpd_req_t *req) {
-    // Puffer zum Lesen der POST-Daten erstellen
+    // Create buffer for reading the POST data
     char buf[256];
     int ret, remaining = req->content_len;
     std::string content;
 
-    // Lese den gesamten Body der POST-Anfrage
+    // Read the entire body of the POST request
     while (remaining > 0) {
         ret = httpd_req_recv(req, buf, std::min(remaining, (int)sizeof(buf)));
         if (ret <= 0) {
@@ -449,7 +449,7 @@ esp_err_t WifiProvisioner::save_post_handler_(httpd_req_t *req) {
         remaining -= ret;
     }
 
-    // Variablen für die extrahierten Werte
+    // Variables for the extracted values
     char ssid_encoded[128] = {0};
     char ssid_decoded[128] = {0};
     char password_encoded[64] = {0};
@@ -459,21 +459,21 @@ esp_err_t WifiProvisioner::save_post_handler_(httpd_req_t *req) {
     char timezone_encoded[128] = {0};
     char timezone_decoded[128] = {0};
 
-    // Extrahiere die Key-Value-Paare aus dem POST-Body
+    // Extract the key-value pairs from the POST body
     if (httpd_query_key_value(content.c_str(), "ssid", ssid_encoded, sizeof(ssid_encoded)) != ESP_OK ||
         httpd_query_key_value(content.c_str(), "timezone", timezone_encoded, sizeof(timezone_encoded)) != ESP_OK ||
         strlen(ssid_encoded) == 0 || strlen(timezone_encoded) == 0) {
 
         ESP_LOGE(TAG, "Bad request: ssid or timezone parameter missing.");
-        httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "BAD REQUEST: SSID und Zeitzone sind erforderlich.");
+        httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "BAD REQUEST: SSID and time zone are required.");
         return ESP_FAIL;
     }
 
-    // Passwort und Hostname sind optional
+    // Password and hostname are optional
     httpd_query_key_value(content.c_str(), "password", password_encoded, sizeof(password_encoded));
     httpd_query_key_value(content.c_str(), "hostname", hostname_encoded, sizeof(hostname_encoded));
 
-    // Hole den `this` Pointer auf die Klasseninstanz
+    // Get the `this` pointer to the class instance
     auto* provisioner = static_cast<WifiProvisioner*>(req->user_ctx);
 
     url_decode(ssid_decoded,     ssid_encoded,     sizeof(ssid_decoded));
@@ -481,7 +481,7 @@ esp_err_t WifiProvisioner::save_post_handler_(httpd_req_t *req) {
     url_decode(hostname_decoded, hostname_encoded,  sizeof(hostname_decoded));
     url_decode(timezone_decoded, timezone_encoded,  sizeof(timezone_decoded));
 
-    // Speichere die empfangenen und dekodierten Daten in den Member-Variablen der Klasse
+    // Store the received and decoded data in the class's member variables
     provisioner->_ssid = ssid_decoded;
     provisioner->_password = password_decoded;
     provisioner->_hostname = hostname_decoded;
@@ -489,7 +489,7 @@ esp_err_t WifiProvisioner::save_post_handler_(httpd_req_t *req) {
 
     ESP_LOGI(TAG, "Credentials temporarily stored. Decoded timezone: %s, hostname: %s", timezone_decoded, hostname_decoded);
 
-    // Wenn das `persistent_storage`-Flag gesetzt wurde, speichere die Daten auch dauerhaft im NVS
+    // If the `persistent_storage` flag was set, also store the data persistently in NVS
     if (provisioner->_persistent_storage) {
         if (provisioner->save_credentials_to_nvs_() == ESP_OK) {
             ESP_LOGI(TAG, "Credentials also saved persistently to NVS.");
@@ -500,14 +500,14 @@ esp_err_t WifiProvisioner::save_post_handler_(httpd_req_t *req) {
     
     httpd_resp_send(req, "OK", HTTPD_RESP_USE_STRLEN);
 
-    // Signalisiere der wartenden start_provisioning-Funktion, dass die Eingabe erfolgreich war
+    // Signal the waiting start_provisioning function that the input was successful
     xEventGroupSetBits(provisioner->_provisioning_event_group, PROV_SUCCESS_BIT);
 
     return ESP_OK;
 }
 
 void WifiProvisioner::wifi_event_handler(void* arg, esp_event_base_t event_base, int32_t event_id, void* event_data) {
-    // Hole die Instanz der Klasse aus dem Argument-Pointer
+    // Get the class instance from the argument pointer
     WifiProvisioner* provisioner = static_cast<WifiProvisioner*>(arg);
     
     if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_START) {
@@ -519,7 +519,7 @@ void WifiProvisioner::wifi_event_handler(void* arg, esp_event_base_t event_base,
         ESP_LOGW(TAG, "EVENT: STA_DISCONNECTED. Reason code: %d.", event->reason);
 
         if (s_retry_num < s_max_retries) {
-            // Warte eine Sekunde vor dem nächsten Versuch, um den Router nicht zu überlasten
+            // Wait one second before the next attempt so as not to overload the router
             vTaskDelay(pdMS_TO_TICKS(1000)); 
 
             esp_wifi_connect();
@@ -528,7 +528,7 @@ void WifiProvisioner::wifi_event_handler(void* arg, esp_event_base_t event_base,
         } else {
             ESP_LOGE(TAG, "Failed to connect after %d attempts. Erasing credentials and rebooting into provisioning mode.", s_max_retries);
             
-            // Lösche die gespeicherten Zugangsdaten
+            // Delete the stored credentials
             nvs_handle_t nvs_handle;
             nvs_open(PROV_NVS_NAMESPACE, NVS_READWRITE, &nvs_handle);
             nvs_erase_key(nvs_handle, "ssid");
@@ -538,7 +538,7 @@ void WifiProvisioner::wifi_event_handler(void* arg, esp_event_base_t event_base,
             nvs_commit(nvs_handle);
             nvs_close(nvs_handle);
             
-            // Starte das Gerät neu
+            // Restart the device
             vTaskDelay(pdMS_TO_TICKS(1000));
             esp_restart();
         }
@@ -547,21 +547,21 @@ void WifiProvisioner::wifi_event_handler(void* arg, esp_event_base_t event_base,
         ip_event_got_ip_t* event = (ip_event_got_ip_t*) event_data;
         ESP_LOGI(TAG, "EVENT: GOT_IP. Successfully connected! IP: " IPSTR, IP2STR(&event->ip_info.ip));
         
-        // Flag, dass es eine erfolgreiche Verbindung gab
+        // Flag that there was a successful connection
         provisioner->_has_been_connected = true;
 
-        // Setze den Zähler bei Erfolg zurück und erhöhe das Retry Limit
+        // Reset the counter on success and raise the retry limit
         s_retry_num = 0; 
         s_max_retries = WIFI_MAX_RETRIES_RECONNECT;
 
-        // Starte die Zeitsynchronisierung
+        // Start time synchronization
         provisioner->synchronize_time();
     }
 }
 
 void WifiProvisioner::time_sync_notification_cb(struct timeval *tv) {
-    ESP_LOGI(TAG, "Zeitsynchronisierung erfolgreich abgeschlossen.");
-    // Greife über den statischen Pointer auf die Instanz zu und setze das Flag
+    ESP_LOGI(TAG, "Time synchronization completed successfully.");
+    // Access the instance via the static pointer and set the flag
     if (s_instance) {
         s_instance->_is_time_synced = true;
     }
@@ -570,16 +570,16 @@ void WifiProvisioner::time_sync_notification_cb(struct timeval *tv) {
 void WifiProvisioner::synchronize_time() {
     if (_sntp_initialized) {
         ESP_LOGI(TAG, "SNTP is already initialized. Skipping.");
-        return; // Breche die Funktion hier ab
+        return; // Abort the function here
     }
 
-    ESP_LOGI(TAG, "Initialisiere SNTP-Zeitsynchronisierung...");
+    ESP_LOGI(TAG, "Initializing SNTP time synchronization...");
     esp_sntp_setoperatingmode(SNTP_OPMODE_POLL);
     esp_sntp_setservername(0, "pool.ntp.org");
     esp_sntp_set_time_sync_notification_cb(time_sync_notification_cb);
     esp_sntp_init();
 
-    _sntp_initialized = true; // Setze das Flag nach der ersten erfolgreichen Initialisierung
+    _sntp_initialized = true; // Set the flag after the first successful initialization
 }
 
 bool WifiProvisioner::is_time_synchronized() const {

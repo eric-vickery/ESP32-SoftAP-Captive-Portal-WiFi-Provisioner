@@ -28,7 +28,7 @@ h1 {
     color: #007aff;
     margin-top: 0;
     margin-bottom: 25px;
-    font-size: 1.6em; /* Kleinere Überschrift */
+    font-size: 1.6em; /* Smaller heading */
 }
 
 label {
@@ -79,7 +79,7 @@ select:disabled {
 /* Spezifische Komponenten                                    */
 /* ========================================================== */
 
-/* Lade-Animation für den WLAN-Scan */
+/* Loading animation for the WiFi scan */
 .loader {
     border: 3px solid #f3f3f3;
     border-top: 3px solid #007aff;
@@ -97,13 +97,13 @@ select:disabled {
     100% { transform: rotate(360deg); }
 }
 
-/* Container für Elemente mit Button daneben (Passwort, WLAN-Scan) */
+/* Container for elements with a button next to them (password, WiFi scan) */
 .input-wrapper {
     display: flex;
     margin-top: 8px;
 }
 
-/* Diese Regel gilt nun für input UND select Elemente im Wrapper */
+/* This rule now applies to input AND select elements in the wrapper */
 .input-wrapper input,
 .input-wrapper select {
     flex-grow: 1;
@@ -129,7 +129,7 @@ select:disabled {
 }
 
 .toggle-button svg {
-    width: 20px; /* Grösse der Icons anpassen */
+    width: 20px; /* Adjust icon size */
     height: 20px;
 }
 

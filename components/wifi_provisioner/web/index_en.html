@@ -1988,7 +1988,7 @@
             });
 
             function scanForNetworks() {
-                // Button deaktivieren und Lade-Animation anzeigen
+                // Disable button and show loading animation
                 scanButton.disabled = true;
                 loader.style.visibility = 'visible';
                 ssidSelect.innerHTML = '<option value="">Scanning for networks...</option>';
@@ -2002,7 +2002,7 @@
                                 const option = new Option(ap.ssid, ap.ssid);
 
                                 //const displayText = `${ap.ssid} (${ap.rssi} dBm)`; // Erzeugt z.B. "WIRELESSNETWORK (-49 dBm)"
-                                //const option = new Option(displayText, ap.ssid);   // Anzeigetext und Wert getrennt
+                                //const option = new Option(displayText, ap.ssid);   // Display text and value separate
 
                                 ssidSelect.add(option);
                             });
@@ -2015,16 +2015,16 @@
                         ssidSelect.innerHTML = '<option value="">Scan failed</option>';
                     })
                     .finally(() => {
-                        // Unabhängig vom Ergebnis: Button wieder aktivieren und Lade-Animation ausblenden
+                        // Regardless of the result: re-enable button and hide loading animation
                         scanButton.disabled = false;
                         loader.style.visibility = 'hidden';
                     });
             }
 
-            // Event listener für den Scan-Button hinzufügen
+            // Add event listener for the scan button
             scanButton.addEventListener('click', scanForNetworks);
 
-            // Initialen Scan beim Laden der Seite durchführen
+            // Perform initial scan when the page loads
             scanForNetworks();
 
             // --- Password Toggle Logic ---

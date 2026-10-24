@@ -1,102 +1,102 @@
 /**
  * @file wifi_provisioner.hpp
- * @brief Eine robuste, vollständig gekapselte Klasse für die WLAN-Provisionierung auf dem ESP32.
+ * @brief A robust, fully encapsulated class for WiFi provisioning on the ESP32.
  *
- * ## Konzept: WiFi-Provisioning
+ * ## Concept: WiFi Provisioning
  *
- * IoT-Geräte wie der ESP32 benötigen in der Regel eine WLAN-Verbindung, um nützlich zu sein. Die Zugangsdaten
- * (SSID und Passwort) im Code fest zu hinterlegen, ist unflexibel und unsicher. Der Prozess, einem Gerät
- * diese Informationen bei der Ersteinrichtung auf benutzerfreundliche Weise mitzuteilen, wird als
- * **Provisioning** bezeichnet.
+ * IoT devices such as the ESP32 usually need a WiFi connection to be useful. Hard-coding the credentials
+ * (SSID and password) in the code is inflexible and insecure. The process of telling a device
+ * this information in a user-friendly way during initial setup is called
+ * **provisioning**.
  *
- * Diese Klasse implementiert die gängigste und benutzerfreundlichste Methode für Geräte ohne Bildschirm
- * oder Tastatur: den **Soft AP (Access Point) + Captive Portal** Modus.
+ * This class implements the most common and user-friendly method for devices without a screen
+ * or keyboard: the **Soft AP (Access Point) + Captive Portal** mode.
  *
- * ## Funktionsweise: Das Captive Portal
+ * ## How it works: The Captive Portal
  *
- * Das Herzstück der Klasse ist ein Mechanismus, der das Smartphone eines Benutzers nach der Verbindung
- * mit dem ESP32 automatisch auf eine Konfigurationsseite "zwingt". Dies ist dieselbe Technologie,
- * die auch in Hotels oder Flughäfen zum Einsatz kommt.
+ * The heart of the class is a mechanism that automatically "forces" a user's smartphone onto a
+ * configuration page after it connects to the ESP32. This is the same technology
+ * used in hotels or airports.
  *
- * Stellen Sie sich den ESP32 wie einen cleveren Hotel-Portier vor:
+ * Imagine the ESP32 as a clever hotel concierge:
  *
- * 1.  **Verbindung & DHCP:** Ein Gast (das Smartphone) betritt das Hotel (verbindet sich mit dem vom ESP32
- * erstellten WLAN). Der Portier (DHCP-Server des ESP32) gibt dem Gast einen Zimmerschlüssel (IP-Adresse)
- * und sagt: "Wenn Sie nach dem Weg fragen wollen (DNS-Anfrage), fragen Sie ausschließlich mich."
+ * 1.  **Connection & DHCP:** A guest (the smartphone) enters the hotel (connects to the WiFi network
+ * created by the ESP32). The concierge (the ESP32's DHCP server) gives the guest a room key (IP address)
+ * and says: "If you want to ask for directions (DNS request), ask only me."
  *
- * 2.  **Automatischer Konnektivitäts-Check:** Das Smartphone möchte sofort wissen, ob es einen Weg nach
- * draußen (ins Internet) gibt. Es ruft dafür automatisch eine bekannte Adresse an (z.B. "google.com").
+ * 2.  **Automatic connectivity check:** The smartphone immediately wants to know whether there is a way
+ * out (to the internet). It automatically contacts a well-known address (e.g. "google.com").
  *
- * 3.  **DNS-Entführung (Der Trick):** Das Smartphone fragt den Portier (DNS-Server des ESP32): "Wo ist der
- * Ausgang zu 'google.com'?" Der Portier lügt absichtlich und antwortet immer mit derselben
- * Information: "Der Ausgang ist direkt hier an der Rezeption" (er antwortet mit seiner eigenen
- * IP-Adresse `192.168.4.1`).
+ * 3.  **DNS hijacking (the trick):** The smartphone asks the concierge (the ESP32's DNS server): "Where is the
+ * exit to 'google.com'?" The concierge deliberately lies and always answers with the same
+ * information: "The exit is right here at the reception" (it answers with its own
+ * IP address `192.168.4.1`).
  *
- * 4.  **Webserver-Antwort:** Das Smartphone geht zur Rezeption (sendet eine HTTP-Anfrage an `192.168.4.1`).
- * Dort drückt ihm der Portier (Webserver des ESP32) anstelle einer Wegbeschreibung das Anmeldeformular
- * des Hotels in die Hand (die `index.html`-Konfigurationsseite).
+ * 4.  **Web server response:** The smartphone goes to the reception (sends an HTTP request to `192.168.4.1`).
+ * There, instead of directions, the concierge (the ESP32's web server) hands it the hotel's
+ * registration form (the `index.html` configuration page).
  *
- * 5.  **Captive Portal Erkennung:** Das Betriebssystem des Smartphones erkennt die List. Es merkt: "Das ist
- * nicht der Ausgang, das ist eine Anmelde- oder Konfigurationsseite." Daraufhin öffnet es diese
- * Seite prominent in einem speziellen Browser-Fenster für den Benutzer.
+ * 5.  **Captive portal detection:** The smartphone's operating system sees through the ruse. It realizes: "This is
+ * not the exit, this is a login or configuration page." It then opens this
+ * page prominently in a special browser window for the user.
  *
- * ## Besondere Merkmale der Klasse
+ * ## Special features of the class
  *
- * Diese Klasse wurde im Laufe der Entwicklung um mehrere robuste Funktionen erweitert:
+ * Over the course of development, this class has been extended with several robust features:
  *
- * - **Vollständige Kapselung:** Die Klasse kümmert sich um alle notwendigen System-Initialisierungen
- * (NVS, WiFi, Events etc.) auf eine sichere Weise, die nur einmal ausgeführt wird. Die `app_main`-Funktion
- * bleibt dadurch extrem sauber und einfach.
+ * - **Full encapsulation:** The class takes care of all necessary system initializations
+ * (NVS, WiFi, events, etc.) in a safe way that is executed only once. The `app_main` function
+ * therefore stays extremely clean and simple.
  *
- * - **Blockierender Prozess ohne Neustarts:** Der `start_provisioning()`-Prozess ist "blockierend".
- * Das bedeutet, die `app_main`-Funktion wartet, bis der Benutzer seine Daten eingegeben hat.
- * Danach wird die Verbindung direkt hergestellt, ohne dass ein störender Neustart des Geräts nötig ist.
+ * - **Blocking process without restarts:** The `start_provisioning()` process is "blocking".
+ * This means the `app_main` function waits until the user has entered their data.
+ * The connection is then established directly, without needing a disruptive device restart.
  *
- * - **Optionale dauerhafte Speicherung:** Die `start_provisioning()`-Methode hat ein Flag `persistent_storage`.
- * Ist dieses `true`, werden die Daten im NVS-Flash gespeichert. Ist es `false`, werden die Daten nur
- * temporär im RAM gehalten und sind nach einem Neustart verloren. Um Konflikte zu vermeiden, wird
- * dem ESP-IDF WiFi-Treiber das automatische Speichern von Zugangsdaten explizit untersagt (`WIFI_STORAGE_RAM`).
+ * - **Optional persistent storage:** The `start_provisioning()` method has a `persistent_storage` flag.
+ * If it is `true`, the data is stored in NVS flash. If it is `false`, the data is only
+ * kept temporarily in RAM and is lost after a restart. To avoid conflicts,
+ * the ESP-IDF WiFi driver is explicitly prohibited from storing credentials automatically (`WIFI_STORAGE_RAM`).
  *
- * - **Automatische Fehlerbehandlung:** Gibt ein Benutzer ein falsches Passwort ein, würde das Gerät
- * normalerweise in einer Endlosschleife versuchen, sich zu verbinden. Diese Klasse zählt die
- * Fehlversuche. Nach 5 erfolglosen Versuchen löscht sie die fehlerhaften Zugangsdaten aus dem NVS
- * und startet neu, wodurch das Gerät automatisch wieder im Konfigurationsmodus ist. Es ist für den
- * Benutzer somit unmöglich, das Gerät "versehentlich zu bricken".
+ * - **Automatic error handling:** If a user enters a wrong password, the device would
+ * normally try to connect in an endless loop. This class counts the
+ * failed attempts. After 5 unsuccessful attempts, it deletes the faulty credentials from NVS
+ * and restarts, so the device automatically returns to configuration mode. It is therefore
+ * impossible for the user to "accidentally brick" the device.
  *
- * ## Verwendung in der Anwendung (`main.cpp`)
+ * ## Usage in the application (`main.cpp`)
  *
- * Die Verwendung der Klasse ist denkbar einfach und erfordert keine Kenntnisse über die internen Abläufe.
+ * Using the class is extremely simple and requires no knowledge of the internal workings.
  *
  * ```cpp
  * #include "freertos/FreeRTOS.h"
  * #include "freertos/task.h"
  * #include "esp_log.h"
- * #include "wifi_provisioner.hpp" // Der einzige Header, der benötigt wird.
+ * #include "wifi_provisioner.hpp" // The only header that is needed.
  *
  * static const char* TAG = "MAIN_APP";
  *
  * extern "C" void app_main(void) {
  * ESP_LOGI(TAG, "Application starting...");
  *
- * // Erstelle das Objekt. Der Konstruktor kümmert sich um ALLES.
+ * // Create the object. The constructor takes care of EVERYTHING.
  * WifiProvisioner provisioner;
  *
- * // Prüfe, ob das Gerät bereits konfiguriert ist.
+ * // Check whether the device is already configured.
  * if (provisioner.is_provisioned()) {
- * // Wenn ja, lade die Daten aus dem NVS in das Objekt.
+ * // If so, load the data from NVS into the object.
  * provisioner.get_credentials();
  * } else {
- * // Wenn nein, starte den blockierenden Provisionierungs-Prozess.
- * // 'true' bedeutet, dass die eingegebenen Daten dauerhaft gespeichert werden.
+ * // If not, start the blocking provisioning process.
+ * // 'true' means the entered data is stored persistently.
  * provisioner.start_provisioning("ESP32-Setup", true);
  * }
- * * // Stelle nun die Verbindung her, entweder mit den alten (geladenen)
- * // oder den neuen (frisch eingegebenen) Zugangsdaten.
+ * * // Now establish the connection, either with the old (loaded)
+ * // or the new (freshly entered) credentials.
  * provisioner.connect_sta();
  *
  * ESP_LOGI(TAG, "Main application logic can now run.");
  * while(true) {
- * // Hier läuft Ihre eigentliche Anwendungslogik...
+ * // Your actual application logic runs here...
  * vTaskDelay(pdMS_TO_TICKS(10000));
  * }
  * }
@@ -117,46 +117,46 @@ public:
     ~WifiProvisioner();
 
     /**
-     * @brief Startet den blockierenden Provisionierungs-Modus.
-     * * Startet AP, DNS- und Webserver und wartet, bis der Benutzer
-     * im Captive Portal seine Daten eingegeben hat. Die Server werden danach wieder beendet.
+     * @brief Starts the blocking provisioning mode.
+     * * Starts the AP, DNS and web server and waits until the user
+     * has entered their data in the captive portal. The servers are stopped afterwards.
      *
-     * @param ap_ssid Der Name des WLAN-Netzwerks, das der ESP32 aufspannt.
-     * @param persistent_storage Wenn true, werden die Daten dauerhaft im NVS gespeichert.
-     * Wenn false, werden sie nur temporär im Speicher gehalten.
-     * @param ap_password Optionales Passwort für den Access Point.
-     * @return esp_err_t ESP_OK bei Erfolg.
+     * @param ap_ssid The name of the WiFi network the ESP32 creates.
+     * @param persistent_storage If true, the data is stored persistently in NVS.
+     * If false, it is only kept temporarily in memory.
+     * @param ap_password Optional password for the access point.
+     * @return esp_err_t ESP_OK on success.
      */
     esp_err_t start_provisioning(const std::string& ap_ssid, bool persistent_storage, const std::string& ap_password = "");
 
     /**
-     * @brief Prüft, ob gültige WLAN-Zugangsdaten dauerhaft im NVS gespeichert sind.
+     * @brief Checks whether valid WiFi credentials are stored persistently in NVS.
      */
     bool is_provisioned();
 
     /**
-     * @brief Lädt dauerhaft gespeicherte Zugangsdaten aus dem NVS in die Klasse.
-     * @return esp_err_t ESP_OK bei Erfolg.
+     * @brief Loads persistently stored credentials from NVS into the class.
+     * @return esp_err_t ESP_OK on success.
      */
     esp_err_t get_credentials();
 
     /**
-     * @brief Versucht, eine Verbindung mit den in der Klasse gespeicherten Zugangsdaten herzustellen.
+     * @brief Tries to connect using the credentials stored in the class.
      *
-     * Der Hostname wird aus den Provisionierungsdaten übernommen. Wurde keiner angegeben, wird "ESP32" verwendet.
-     * @return esp_err_t ESP_OK bei Erfolg der Initiierung.
+     * The hostname is taken from the provisioning data. If none was given, "ESP32" is used.
+     * @return esp_err_t ESP_OK if initiation succeeded.
      */
     esp_err_t connect_sta();
 
     /**
-     * @brief Konfiguriert und startet den SNTP-Client zur Zeitsynchronisierung.
-     * * @note Wird idealerweise automatisch aufgerufen, sobald eine WLAN-Verbindung steht.
+     * @brief Configures and starts the SNTP client for time synchronization.
+     * * @note Ideally called automatically as soon as a WiFi connection is established.
      */
     void synchronize_time();
 
     /**
-     * @brief Prüft, ob die Systemzeit erfolgreich mit einem NTP-Server synchronisiert wurde.
-     * @return true, wenn die Zeit synchron ist, andernfalls false.
+     * @brief Checks whether the system time was successfully synchronized with an NTP server.
+     * @return true if the time is synchronized, otherwise false.
      */
     bool is_time_synchronized() const;
 
@@ -178,34 +178,34 @@ private:
     esp_err_t load_credentials_from_nvs_(std::string& ssid, std::string& password, std::string& hostname, std::string& timezone);
     esp_err_t save_credentials_to_nvs_();
 
-    // Statische Methoden für C-Callbacks
+    // Static methods for C callbacks
     static void wifi_event_handler(void* arg, esp_event_base_t event_base, int32_t event_id, void* event_data);
     static void time_sync_notification_cb(struct timeval *tv);
 
-    // Member-Variablen zum Speichern der Zugangsdaten
+    // Member variables for storing the credentials
     std::string _ssid;
     std::string _password;
     std::string _hostname;
     std::string _timezone;
 
-    // Gab es schon eine erfolgreiche Verbindung
+    // Whether there has already been a successful connection
     bool _has_been_connected = false;
 
-    // Dieses Flag wird vom SNTP-Callback auf 'true' gesetzt.
+    // This flag is set to 'true' by the SNTP callback.
     bool _is_time_synced = false;
 
-    // Flag, um die SNTP-Initialisierung zu verfolgen
+    // Flag to track the SNTP initialization
     bool _sntp_initialized = false; 
 
-    // Konfigurations-Flags
+    // Configuration flags
     bool _persistent_storage = false;
     
-    // FreeRTOS-Objekte für die Synchronisation
+    // FreeRTOS objects for synchronization
     EventGroupHandle_t _provisioning_event_group;
     
     httpd_handle_t server_ = nullptr;
     bool wifi_initialized_ = false;
 
-    // Statischer Pointer, damit der C-Callback auf die Instanz zugreifen kann
+    // Static pointer so the C callback can access the instance
     static WifiProvisioner* s_instance;
 };

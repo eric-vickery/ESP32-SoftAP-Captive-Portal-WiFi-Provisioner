@@ -11,24 +11,24 @@ extern "C" void app_main(void) {
 
     WifiProvisioner provisioner;
 
-    // SCHRITT 1: Entscheiden, woher die Daten kommen
+    // STEP 1: Decide where the data comes from
     if (provisioner.is_provisioned()) {
-        // Option A: Daten sind im NVS. Lade sie in die Klasse.
+        // Option A: Data is in NVS. Load it into the class.
         provisioner.get_credentials();
     } else {
-        // Option B: Keine Daten im NVS. Starte den Provisionierungs-Prozess.
-        // Dieser füllt die Member-Variablen und speichert die Daten dauerhaft (wegen `true`).
+        // Option B: No data in NVS. Start the provisioning process.
+        // This fills the member variables and stores the data persistently (because of `true`).
         provisioner.start_provisioning("ESP32-WiFi-Provisioning", true);
     }
 
-    // SCHRITT 2: Verbinden
-    // `connect_sta` verwendet nun die Daten, die in Schritt 1 geladen wurden.
+    // STEP 2: Connect
+    // `connect_sta` now uses the data loaded in step 1.
     provisioner.connect_sta();
 
-    // Endlosschleife für die Hauptanwendung
+    // Infinite loop for the main application
     ESP_LOGI(TAG, "Main application logic can now run. Waiting for WiFi events...");
     while(true) {
-        // Frage die Klasse direkt, ob die Zeit synchron ist.
+        // Ask the class directly whether the time is synchronized.
         if (provisioner.is_time_synchronized()) {
             time_t now;
             struct tm timeinfo;
@@ -38,12 +38,12 @@ extern "C" void app_main(void) {
             localtime_r(&now, &timeinfo);
             strftime(strftime_buf, sizeof(strftime_buf), "%A, %d. %B %Y %H:%M:%S", &timeinfo);
             
-            ESP_LOGI(TAG, "Aktuelle lokale Zeit: %s", strftime_buf);
+            ESP_LOGI(TAG, "Current local time: %s", strftime_buf);
         } else {
-            ESP_LOGI(TAG, "Zeit ist noch nicht mit dem NTP-Server synchronisiert.");
+            ESP_LOGI(TAG, "Time is not yet synchronized with the NTP server.");
         }
         
-        // Warte eine Sekunde bis zur nächsten Ausgabe
+        // Wait one second until the next output
         vTaskDelay(pdMS_TO_TICKS(1000));
     } 
 }
